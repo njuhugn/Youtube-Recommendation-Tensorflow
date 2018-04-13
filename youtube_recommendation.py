@@ -11,9 +11,9 @@ import math
 train_file = "data/dbpedia.train"
 test_file = "data/dbpedia.test"
 label_dict = {}
-sku_dict = {}
+sku_dict = {}  #  
 
-max_window_size = 1000
+max_window_size = 1000  # col_no
 batch_size = 500
 emb_size = 128
 
@@ -23,7 +23,7 @@ training_epochs = 1
 display_step = 1
 
 # Network Parameters
-n_hidden_1 = 128 # 1st layer number of features
+n_hidden_1 = 128 # 1st layer number of features [2014 -> 512 -> 256]
 # n_hidden_2 = 256 # 2nd layer number of features
 
 def init_data(read_file):
@@ -85,7 +85,7 @@ biases = {
 }
 
 # Create model
-def multilayer_perceptron(x, weights, biases):
+def multilayer_perceptron(x, weights, biases):  # x = project_embedding
     # Hidden layer with RELU activation
     #x = tf.nn.dropout(x, 0.8)
     layer_1 = tf.add(tf.matmul(x, weights['h1']), biases['b1'])
@@ -96,21 +96,21 @@ def multilayer_perceptron(x, weights, biases):
     # Output layer with linear activation
     # out_layer = tf.matmul(layer_1, weights['out']) + biases['out']
     # return out_layer
-    return layer_1
+    return layer_1  # the representations of last hidden layers, NOT the output layer
 
 embedding = {
     'input':tf.Variable(tf.random_uniform([len(sku_dict)+1, emb_size], -1.0, 1.0))
-    # 'output':tf.Variable(tf.random_uniform([len(label_dict)+1, emb_size], -1.0, 1.0))
+    # 'output':tf.Variable(tf.random_uniform([len(label_dict)+1, emb_size], -1.0, 1.0))  # CBOW, label embedding
 }
 
-emb_mask = tf.placeholder(tf.float32, shape=[None, max_window_size, 1])
-word_num = tf.placeholder(tf.float32, shape=[None, 1])
+emb_mask = tf.placeholder(tf.float32, shape=[None, max_window_size, 1])  
+word_num = tf.placeholder(tf.float32, shape=[None, 1])  # word_num[line_no] = col_no
 
 x_batch = tf.placeholder(tf.int32, shape=[None, max_window_size])
 y_batch = tf.placeholder(tf.int64, [None, 1])
 
 input_embedding = tf.nn.embedding_lookup(embedding['input'], x_batch)
-project_embedding = tf.div(tf.reduce_sum(tf.multiply(input_embedding,emb_mask), 1),word_num)
+project_embedding = tf.div(tf.reduce_sum(tf.multiply(input_embedding,emb_mask), 1), word_num)
 
 # Construct model
 pred = multilayer_perceptron(project_embedding, weights, biases)
@@ -159,10 +159,11 @@ with tf.Session() as sess:
               "{:.9f}".format(avg_cost))
 
     # Test model
-    correct_prediction = tf.equal(tf.argmax(out_layer, 1), tf.reshape(y_batch, [batch_size]))
+    correct_prediction = tf.equal(tf.argmax(out_layer, 1), tf.reshape(y_batch, [batch_size]))  # num of correct predictions
     # Calculate accuracy
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
 
+    # compute metrics
     test_lst = linecache.getlines(test_file)
     total_batch = int(len(test_lst) / batch_size)
     final_accuracy = 0
